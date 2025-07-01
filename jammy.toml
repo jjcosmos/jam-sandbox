@@ -1,0 +1,6 @@
+package_name = "sandbox"
+lib_dir = "lib"
+include_dir = "include"
+linker_args = ["-lvcruntime", "-lmsvcrt", "-llegacy_stdio_definitions", "-Wl,/subsystem:console"]
+target_triple = "x86_64-pc-windows-msvc"
+#target_triple = "wasm32-unknown-unknown"

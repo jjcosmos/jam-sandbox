@@ -1,0 +1,315 @@
+sum Item<[T]> {
+    No(Thing<[T]>),
+    Yes(i8),
+    None,
+}
+
+struct Thing<[T]> {
+    item: T,
+}
+
+impl <[T]> Thing<[T]> {
+    proc do_thing(self: Thing<[T]>*) -> T {
+        return self.item;
+    }
+}
+
+enum Bork {
+    A: 1i32,
+    B: 3i32,
+    C: 0i32,
+    D, // implicitly also 1
+}
+
+sum Simple {
+    Yes(i32),
+}
+
+extern proc byteview(start: i32, len: i32);
+extern proc println(msg: cstr);
+
+extern proc print_i32(value: i32);
+extern proc print_f32(value: f32);
+extern proc print_f64(value: f64);
+
+extern proc begin_default_pass(address: i32);
+extern proc end_render_pass();
+extern proc commit_frame();
+
+extern proc apply_pipeline(pipeline_id: i32);
+extern proc apply_bindings(binding_id: i32);
+extern proc apply_uniforms_from_bytes(ptr: i32, byte_count: u32);
+extern proc draw(base_element: i32, num_elements: i32, num_instances: i32);
+
+// I simply don't have the math skills for talor series approximation rn
+// so either this or interpolated lookup
+extern proc sin_f32(value: f32) -> f32;
+extern proc sin_f64(value: f64) -> f64;
+
+extern proc cos_f32(value: f32) -> f32;
+extern proc cos_f64(value: f64) -> f64;
+
+/// Returns file handle
+extern proc start_file_load(file_name: cstr) -> i32;
+/// Returns 0 or 1, depending on if it has been loaded
+extern proc get_file_load_status(file_handle: i32) -> i32;
+
+struct HasFuncArg {
+    fn: proc(a: i32, b: i32),
+}
+
+sum PassAction {
+    Nothing,
+    Clear(ClearAction),
+}
+
+sum Option<[T]> {
+    None,
+    Some(T),
+}
+
+sum Large {
+    Big(u64),
+}
+
+struct ClearAction {
+    color: Option<[f32[4usize]]>,
+    depth: Option<[f32]>,
+    stencil: Option<[i32]>,
+}
+
+static default_pass_action: PassAction;
+proc window_main() {
+    // This works now!
+    let x = Option<[i32]>:>Some(69i32);
+    x = _:>None;
+
+    let pass_action_clear = ClearAction {
+        // The type of color is known to be Option<[f32[4usize]]>, so it can be inferred
+        color: _:>Some([1.0f32, 1.0f32, 1.0f32, 1.0f32]),
+        depth: _:>None,
+        stencil: _:>None,
+    };
+
+    // init global static
+    default_pass_action = PassAction:>Clear(pass_action_clear);
+
+    created_res = false;
+    bayle_file_handle = start_file_load("res/bayle.jpg");
+
+    println("started texture load");
+    print_i32(bayle_file_handle);
+}
+
+enum TextureAccess {
+    /// Used as read-only from GPU
+    Static,
+    /// Can be written to from GPU
+    RenderTarget,
+}
+
+enum TextureKind {
+    Texture2D,
+    CubeMap,
+}
+
+enum TextureFormat {
+    RGB8,
+    RGBA8,
+    RGBA16F,
+    Depth,
+    Depth32,
+    Alpha,
+}
+
+enum TextureWrap {
+    /// Samples at coord x + 1 map to coord x.
+    Repeat,
+    /// Samples at coord x + 1 map to coord 1 - x.
+    Mirror,
+    /// Samples at coord x + 1 map to coord 1.
+    Clamp,
+}
+
+enum FilterMode {
+    Linear,
+    Nearest,
+}
+
+enum MipmapFilterMode {
+    None,
+    Linear,
+    Nearest,
+}
+
+struct TextureParams {
+    kind: TextureKind,
+    format: TextureFormat,
+    wrap: TextureWrap,
+    min_filter: FilterMode,
+    mag_filter: FilterMode,
+    mipmap_filter: MipmapFilterMode,
+    width: u32,
+    height: u32,
+    // All miniquad API could work without this flag being explicit.
+    // We can decide if mipmaps are required by the data provided
+    // And reallocate non-mipmapped texture(on metal) on generateMipmaps call
+    // But! Reallocating cubemaps is too much struggle, so leave it for later.
+    allocate_mipmaps: bool,
+    /// Only used for render textures. `sample_count > 1` allows anti-aliased render textures.
+    ///
+    /// On OpenGL, for a `sample_count > 1` render texture, render buffer object will
+    /// be created instead of a regulat texture.
+    ///
+    sample_count: i32,
+}
+
+struct Vertex {
+    pos: Float2,
+    uv: Float2,
+}
+
+static bayle_file_handle: i32;
+static created_res: bool;
+
+enum BufferType {
+    VertexBuffer,
+    IndexBuffer,
+}
+
+enum BufferUsage {
+    Immutable,
+    Dynamic,
+    Stream,
+}
+
+/// Create a new buffer and return the index into the saved buffers
+extern proc new_buffer(buffer_type: BufferType, buffer_usage: BufferUsage, data_ptr: i32, data_size: i32, element_size: i32) -> i32;
+extern proc create_texture_from_file(file_handle: i32, texture_params_ptr: i32) -> i32;
+// Should actually probably label the pointers
+extern proc new_bindings(
+    vertex_buffer_id_list_ptr: i32*,
+    vertex_buffer_id_count: i32,
+    index_buffer_id: i32,
+    image_id_list_ptr: i32*,
+    image_id_count: i32,
+) -> u32;
+
+proc create_render_resources() {
+    let vertices: Vertex[4usize] = [
+            Vertex { pos : Float2 { x: -0.5f32, y: -0.5f32 }, uv: Float2 { x: 0f32, y: 1f32 } },
+            Vertex { pos : Float2 { x:  0.5f32, y: -0.5f32 }, uv: Float2 { x: 1f32, y: 1f32 } },
+            Vertex { pos : Float2 { x:  0.5f32, y:  0.5f32 }, uv: Float2 { x: 1f32, y: 0f32 } },
+            Vertex { pos : Float2 { x: -0.5f32, y:  0.5f32 }, uv: Float2 { x: 0f32, y: 0f32 } }
+    ];
+
+    let vertex_size = cast<[i32]>(sizeof<[Vertex]>());
+
+    let vertex_buffer = new_buffer(
+        BufferType::VertexBuffer, 
+        BufferUsage::Immutable, 
+        cast<[i32]>(&vertices), 
+        vertex_size * 4i32,
+        vertex_size
+    );
+
+    let indices: u16[6usize] = [0u16, 1u16, 2u16, 0u16, 2u16, 3u16];
+    let u16_size = cast<[i32]>(sizeof<[u16]>());
+    let index_buffer = new_buffer(
+        BufferType::IndexBuffer, 
+        BufferUsage::Immutable, 
+        cast<[i32]>(&indices), 
+        u16_size * 6i32,
+        u16_size
+    );
+
+    // file handle, texture params ptr
+    let texture_params = TextureParams {
+        kind: TextureKind::Texture2D,
+        format: TextureFormat::RGB8,
+        wrap: TextureWrap::Clamp,
+        min_filter: FilterMode::Linear,
+        mag_filter: FilterMode::Linear,
+        mipmap_filter: MipmapFilterMode::None,
+        width: 3024u32,
+        height: 4032u32,
+        allocate_mipmaps: false,
+        sample_count: 0i32,
+    };
+
+    let texture = create_texture_from_file(bayle_file_handle, cast<[i32]>(&texture_params));
+
+    // These would normally be arrays
+    let bindings = new_bindings(&vertex_buffer, 1i32, index_buffer, &texture, 1i32);
+
+    created_res = true;
+}
+
+proc window_draw(delta_draw: f64, now: f64) {
+    if (!created_res) {
+        if (get_file_load_status(bayle_file_handle) == 1i32) {
+            create_render_resources();
+        }
+        else {
+            // Don't have anything to draw, early exit
+            return;
+        };
+    };
+
+    let fdelta_draw: f32 = cast<[f32]>(delta_draw);
+    // struct type ident expression are normally r values
+    // ref keyword prevents value semantics and passes by pointer
+    // kinda lazy, should probably just allow &default_pass_action -
+    // but would need to elide the l2rvalue expression generation
+    match (ref default_pass_action) {
+        Clear(clear_action) => {
+            match (ref clear_action.color) {
+                Some(color) => {
+                    color[0usize] -=  1f32 * fdelta_draw;
+                    color[1usize] -=  1f32 * fdelta_draw;
+                    color[2usize] -=  1f32 * fdelta_draw;
+                },
+                None => {},
+            };
+        },
+        default => {},
+    };
+
+    //let pass_action_none = PassAction:>Nothing;
+
+    let as_int = cast<[i32]>(&default_pass_action);
+    begin_default_pass(as_int);
+
+    // This should take the pipeline id created from jam
+    // Pipelines are per shader
+    apply_pipeline(0i32);
+    // This should take the binding id created from jam
+    // Bindings have vertex buffers, an index buffer, and textures
+    apply_bindings(0i32);
+    //dodraw();
+
+    for (let x = 0i32; x < 10i32; x += 1i32;) {
+        let t = now + cast<[f64]>(x) * 0.3f64;
+        let uniform = Float2 {
+            x: cast<[f32]>(sin_f64(t) * 0.5f64),
+            y: cast<[f32]>(cos_f64(t * 3.0f64) * 0.5f64),
+        };
+
+        apply_uniforms_from_bytes(cast<[i32]>(&uniform), sizeof<[Float2]>());
+        draw(0i32, 6i32, 1i32);
+    }
+
+    end_render_pass();
+    commit_frame();
+}
+
+struct Float2 {
+    x: f32,
+    y: f32,
+}
+
+const PI_F32: f32 = 3.14159265358979323846264338327950288f32;
+const TAU_F32: f32 = 6.28318530717958647692528676655900577f32;
+
+const PI_F64: f64 = 3.14159265358979323846264338327950288f64;
+const TAU_F64: f64 = 6.28318530717958647692528676655900577f64;

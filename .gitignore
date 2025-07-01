@@ -1,0 +1,7 @@
+*.exe
+*.ll
+*.obj
+*.wasm
+/out
+/temp
+/src/bindgen
