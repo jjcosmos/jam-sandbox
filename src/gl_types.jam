@@ -1,0 +1,94 @@
+struct Vertex {
+    pos: Float2,
+    uv: Float2,
+}
+
+struct Float2 {
+    x: f32,
+    y: f32,
+}
+
+enum BufferType {
+    VertexBuffer,
+    IndexBuffer,
+}
+
+enum BufferUsage {
+    Immutable,
+    Dynamic,
+    Stream,
+}
+
+enum TextureAccess {
+    /// Used as read-only from GPU
+    Static,
+    /// Can be written to from GPU
+    RenderTarget,
+}
+
+enum TextureKind {
+    Texture2D,
+    CubeMap,
+}
+
+enum TextureFormat {
+    RGB8,
+    RGBA8,
+    RGBA16F,
+    Depth,
+    Depth32,
+    Alpha,
+}
+
+enum TextureWrap {
+    /// Samples at coord x + 1 map to coord x.
+    Repeat,
+    /// Samples at coord x + 1 map to coord 1 - x.
+    Mirror,
+    /// Samples at coord x + 1 map to coord 1.
+    Clamp,
+}
+
+enum FilterMode {
+    Linear,
+    Nearest,
+}
+
+enum MipmapFilterMode {
+    None,
+    Linear,
+    Nearest,
+}
+
+struct TextureParams {
+    kind: TextureKind,
+    format: TextureFormat,
+    wrap: TextureWrap,
+    min_filter: FilterMode,
+    mag_filter: FilterMode,
+    mipmap_filter: MipmapFilterMode,
+    width: u32,
+    height: u32,
+    // All miniquad API could work without this flag being explicit.
+    // We can decide if mipmaps are required by the data provided
+    // And reallocate non-mipmapped texture(on metal) on generateMipmaps call
+    // But! Reallocating cubemaps is too much struggle, so leave it for later.
+    allocate_mipmaps: bool,
+    /// Only used for render textures. `sample_count > 1` allows anti-aliased render textures.
+    ///
+    /// On OpenGL, for a `sample_count > 1` render texture, render buffer object will
+    /// be created instead of a regulat texture.
+    ///
+    sample_count: i32,
+}
+
+struct ClearAction {
+    color: Option<[f32[4usize]]>,
+    depth: Option<[f32]>,
+    stencil: Option<[i32]>,
+}
+
+sum PassAction {
+    Nothing,
+    Clear(ClearAction),
+}
