@@ -232,7 +232,6 @@ proc create_pipeline() -> u32 {
         format: VertexFormat::Float2,
         buffer_index: 0u32,
         gl_pass_as_float: false,
-        _padding: [0u8, 0u8, 0u8],
     };
 
     let vertex_attribute_uv = VertexAttribute {
@@ -240,7 +239,7 @@ proc create_pipeline() -> u32 {
         format: VertexFormat::Float2,
         buffer_index: 0u32,
         gl_pass_as_float: false,
-        _padding: [0u8, 0u8, 0u8],
+
     };
 
     let pipeline_params = PipelineParams {
@@ -257,7 +256,7 @@ proc create_pipeline() -> u32 {
     };
 
     let shader_id = create_shader();
-    let attibutes_ptr = &[vertex_attribute_pos, vertex_attribute_uv];
+    let attibutes_ptr = &[&vertex_attribute_pos, &vertex_attribute_uv];
     let layout_ptr = &buffer_layout;
     new_pipeline(&layout_ptr, 1i32, cast<[i32]>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
 }
@@ -273,12 +272,11 @@ proc create_shader() -> u32 {
     let ptr_uniform_desc = &uniform_desc;
     let ptr_unform_list = &ptr_uniform_desc;
 
-    println("element");
-    print_i32(cast<[i32]>(ptr_uniform_desc));
-    println("listptr");
-    print_i32(cast<[i32]>(ptr_unform_list));
-    print_i32(cast<[i32]>(sizeof<[UniformDesc]>()));
-    //let block_layout = ;
+    // println("element");
+    // print_i32(cast<[i32]>(ptr_uniform_desc));
+    // println("listptr");
+    // print_i32(cast<[i32]>(ptr_unform_list));
+    // print_i32(cast<[i32]>(sizeof<[UniformDesc]>()));
 
     let meta = ShaderMeta {
         image_ptr: &["tex"],
