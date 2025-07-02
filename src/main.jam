@@ -32,13 +32,13 @@ extern proc print_i32(value: i32);
 extern proc print_f32(value: f32);
 extern proc print_f64(value: f64);
 
-extern proc begin_default_pass(address: i32);
+extern proc begin_default_pass(address: PassAction*);
 extern proc end_render_pass();
 extern proc commit_frame();
 
 extern proc apply_pipeline(pipeline_id: i32);
 extern proc apply_bindings(binding_id: i32);
-extern proc apply_uniforms_from_bytes(ptr: i32, byte_count: u32);
+extern proc apply_uniforms_from_bytes(ptr: void*, byte_count: u32);
 extern proc draw(base_element: i32, num_elements: i32, num_instances: i32);
 
 // I simply don't have the math skills for talor series approximation rn
@@ -91,7 +91,7 @@ static created_res: bool;
 
 /// Create a new buffer and return the index into the saved buffers
 extern proc new_buffer(buffer_type: BufferType, buffer_usage: BufferUsage, data_ptr: i32, data_size: i32, element_size: i32) -> i32;
-extern proc create_texture_from_file(file_handle: i32, texture_params_ptr: i32) -> i32;
+extern proc create_texture_from_file(file_handle: i32, texture_params_ptr: TextureParams*) -> i32;
 // Should actually probably label the pointers
 extern proc new_bindings(
     vertex_buffer_id_list_ptr: i32*,
@@ -137,13 +137,13 @@ proc create_render_resources() {
         min_filter: FilterMode::Linear,
         mag_filter: FilterMode::Linear,
         mipmap_filter: MipmapFilterMode::None,
-        width: 3024u32,
-        height: 4032u32,
+        width: 0u32, // overriden after file load
+        height: 0u32, // overriden after file load
         allocate_mipmaps: false,
         sample_count: 0i32,
     };
 
-    let texture = create_texture_from_file(bayle_file_handle, cast<[i32]>(&texture_params));
+    let texture = create_texture_from_file(bayle_file_handle, &texture_params);
 
     // These would normally be arrays
     let bindings = new_bindings(&vertex_buffer, 1i32, index_buffer, &texture, 1i32);
@@ -184,9 +184,7 @@ proc window_draw(delta_draw: f64, now: f64) {
     };
 
     //let pass_action_none = PassAction:>Nothing;
-
-    let as_int = cast<[i32]>(&default_pass_action);
-    begin_default_pass(as_int);
+    begin_default_pass(&default_pass_action);
 
     // This should take the pipeline id created from jam
     // Pipelines are per shader
@@ -203,7 +201,7 @@ proc window_draw(delta_draw: f64, now: f64) {
             y: cast<[f32]>(cos_f64(t * 3.0f64) * 0.5f64),
         };
 
-        apply_uniforms_from_bytes(cast<[i32]>(&uniform), sizeof<[Float2]>());
+        apply_uniforms_from_bytes(cast<[void*]>(&uniform), sizeof<[Float2]>());
         draw(0i32, 6i32, 1i32);
     }
 
@@ -214,7 +212,7 @@ proc window_draw(delta_draw: f64, now: f64) {
 extern proc new_pipeline(
     buffer_layout_ptr: BufferLayout**,
     buffer_layout_count: i32,
-    attributes_ptr: i32,
+    attributes_ptr: VertexAttribute**,
     attributes_count: i32,
     shader_id: u32,
     pipeline_params_ptr: PipelineParams*,
@@ -243,7 +241,7 @@ proc create_pipeline() -> u32 {
     };
 
     let pipeline_params = PipelineParams {
-        cull_face: CullFace::Nothing,
+        cull_face: CullFace::Back,
         front_face_order: FrontFaceOrder::CounterClockwise,
         depth_test: Comparison::Always,
         depth_write: false,
@@ -256,9 +254,10 @@ proc create_pipeline() -> u32 {
     };
 
     let shader_id = create_shader();
+    // No heap allocations yet lol
     let attibutes_ptr = &[&vertex_attribute_pos, &vertex_attribute_uv];
     let layout_ptr = &buffer_layout;
-    new_pipeline(&layout_ptr, 1i32, cast<[i32]>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
+    new_pipeline(&layout_ptr, 1i32, cast<[VertexAttribute**]>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
 }
 
 extern proc new_shader(vert: cstr, frag: cstr, shader_meta_ptr: ShaderMeta*) -> u32;
@@ -272,12 +271,6 @@ proc create_shader() -> u32 {
     let ptr_uniform_desc = &uniform_desc;
     let ptr_unform_list = &ptr_uniform_desc;
 
-    // println("element");
-    // print_i32(cast<[i32]>(ptr_uniform_desc));
-    // println("listptr");
-    // print_i32(cast<[i32]>(ptr_unform_list));
-    // print_i32(cast<[i32]>(sizeof<[UniformDesc]>()));
-
     let meta = ShaderMeta {
         image_ptr: &["tex"],
         images_count: 1i32,
@@ -287,31 +280,10 @@ proc create_shader() -> u32 {
         },
     };
 
-    let vert = "#version 100
-    attribute vec2 in_pos;
-    attribute vec2 in_uv;
+    let vert = #inc_str("res/vertex.glsl");
+    let frag = #inc_str("res/fragment.glsl");
 
-    uniform vec2 offset;
-
-    varying lowp vec2 texcoord;
-
-    void main() {
-        gl_Position = vec4(in_pos + offset, 0, 1);
-        texcoord = in_uv;
-    }";
-
-    let frag = "#version 100
-    varying lowp vec2 texcoord;
-
-    uniform sampler2D tex;
-
-    void main() {
-        gl_FragColor = texture2D(tex, texcoord);
-    }";
-
-    let shader_id = new_shader(vert, frag, &meta);
-
-    shader_id
+    new_shader(vert, frag, &meta)
 }
 
 const PI_F32: f32 = 3.14159265358979323846264338327950288f32;

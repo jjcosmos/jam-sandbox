@@ -67,8 +67,8 @@ struct TextureParams {
     min_filter: FilterMode,
     mag_filter: FilterMode,
     mipmap_filter: MipmapFilterMode,
-    width: u32,
-    height: u32,
+    width: u32, // these can be deduced after decoding from file
+    height: u32, // which means they will be overriden for that
     // All miniquad API could work without this flag being explicit.
     // We can decide if mipmaps are required by the data provided
     // And reallocate non-mipmapped texture(on metal) on generateMipmaps call
