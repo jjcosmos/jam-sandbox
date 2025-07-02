@@ -216,8 +216,8 @@ extern proc new_pipeline(
     buffer_layout_count: i32,
     attributes_ptr: i32,
     attributes_count: i32,
-    shader_id: i32,
-    pipeline_params_ptr: i32
+    shader_id: u32,
+    pipeline_params_ptr: PipelineParams*,
 ) -> u32;
 
 proc create_pipeline() -> u32 {
@@ -227,15 +227,39 @@ proc create_pipeline() -> u32 {
         step_rate: 1i32,
     };
 
-    let vertex_attribute = VertexAttribute {
+    let vertex_attribute_pos = VertexAttribute {
         name: "in_pos",
         format: VertexFormat::Float2,
         buffer_index: 0u32,
         gl_pass_as_float: false,
-        _padding: [0u8],
+        _padding: [0u8, 0u8, 0u8],
     };
 
-    new_pipeline(&(&buffer_layout), 1i32, )
+    let vertex_attribute_uv = VertexAttribute {
+        name: "in_uv",
+        format: VertexFormat::Float2,
+        buffer_index: 0u32,
+        gl_pass_as_float: false,
+        _padding: [0u8, 0u8, 0u8],
+    };
+
+    let pipeline_params = PipelineParams {
+        cull_face: CullFace::Nothing,
+        front_face_order: FrontFaceOrder::CounterClockwise,
+        depth_test: Comparison::Always,
+        depth_write: false,
+        depth_write_offset: _:>None,
+        color_blend: _:>None,
+        alpha_blend: _:>None,
+        stencil_test: _:>None,
+        color_write: [true, true, true, true],
+        primitive_type: PrimitiveType::Triangles,
+    };
+
+    let shader_id = create_shader();
+    let attibutes_ptr = &[vertex_attribute_pos, vertex_attribute_uv];
+    let layout_ptr = &buffer_layout;
+    new_pipeline(&layout_ptr, 1i32, cast<[i32]>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
 }
 
 extern proc new_shader(vert: cstr, frag: cstr, shader_meta_ptr: ShaderMeta*) -> u32;
