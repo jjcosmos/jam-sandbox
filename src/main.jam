@@ -148,6 +148,8 @@ proc create_render_resources() {
     // These would normally be arrays
     let bindings = new_bindings(&vertex_buffer, 1i32, index_buffer, &texture, 1i32);
 
+    create_pipeline();
+
     created_res = true;
 }
 
@@ -163,7 +165,7 @@ proc window_draw(delta_draw: f64, now: f64) {
     };
 
     let fdelta_draw: f32 = cast<[f32]>(delta_draw);
-    // struct type ident expression are normally r values
+    // struct (or sum) type ident expression are normally r values
     // ref keyword prevents value semantics and passes by pointer
     // kinda lazy, should probably just allow &default_pass_action -
     // but would need to elide the l2rvalue expression generation
@@ -207,6 +209,87 @@ proc window_draw(delta_draw: f64, now: f64) {
 
     end_render_pass();
     commit_frame();
+}
+
+extern proc new_pipeline(
+    buffer_layout_ptr: BufferLayout**,
+    buffer_layout_count: i32,
+    attributes_ptr: i32,
+    attributes_count: i32,
+    shader_id: i32,
+    pipeline_params_ptr: i32
+) -> u32;
+
+proc create_pipeline() -> u32 {
+    let buffer_layout = BufferLayout {
+        stride: 0i32,
+        step_func: VertexStep::PerVertex,
+        step_rate: 1i32,
+    };
+
+    let vertex_attribute = VertexAttribute {
+        name: "in_pos",
+        format: VertexFormat::Float2,
+        buffer_index: 0u32,
+        gl_pass_as_float: false,
+        _padding: [0u8],
+    };
+
+    new_pipeline(&(&buffer_layout), 1i32, )
+}
+
+extern proc new_shader(vert: cstr, frag: cstr, shader_meta_ptr: ShaderMeta*) -> u32;
+proc create_shader() -> u32 {
+    let uniform_desc = UniformDesc {
+        name: "offset",
+        uniform_type: UniformType::Float2,
+        array_count: 1u32,
+    };
+
+    let ptr_uniform_desc = &uniform_desc;
+    let ptr_unform_list = &ptr_uniform_desc;
+
+    println("element");
+    print_i32(cast<[i32]>(ptr_uniform_desc));
+    println("listptr");
+    print_i32(cast<[i32]>(ptr_unform_list));
+    print_i32(cast<[i32]>(sizeof<[UniformDesc]>()));
+    //let block_layout = ;
+
+    let meta = ShaderMeta {
+        image_ptr: &["tex"],
+        images_count: 1i32,
+        uniforms: UniformBlockLayout {
+            uniform_ptr: ptr_unform_list,
+            uniform_count: 1i32,
+        },
+    };
+
+    let vert = "#version 100
+    attribute vec2 in_pos;
+    attribute vec2 in_uv;
+
+    uniform vec2 offset;
+
+    varying lowp vec2 texcoord;
+
+    void main() {
+        gl_Position = vec4(in_pos + offset, 0, 1);
+        texcoord = in_uv;
+    }";
+
+    let frag = "#version 100
+    varying lowp vec2 texcoord;
+
+    uniform sampler2D tex;
+
+    void main() {
+        gl_FragColor = texture2D(tex, texcoord);
+    }";
+
+    let shader_id = new_shader(vert, frag, &meta);
+
+    shader_id
 }
 
 const PI_F32: f32 = 3.14159265358979323846264338327950288f32;
