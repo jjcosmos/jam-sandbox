@@ -3,7 +3,7 @@ struct PipelineParams {
     front_face_order: FrontFaceOrder,
     depth_test: Comparison,
     depth_write: bool,
-    depth_write_offset: Option<[f32[2usize]]>,
+    depth_write_offset: Option<?f32[2usize]?>,
     /// Color (RGB) blend function. If None - blending will be disabled for this pipeline.
     /// Usual use case to get alpha-blending:
     ///```
@@ -17,7 +17,7 @@ struct PipelineParams {
     ///    ..Default::default()
     ///};
     ///```
-    color_blend: Option<[BlendState]>,
+    color_blend: Option<?BlendState?>,
     /// Alpha blend function. If None - alpha will be blended with same equation than RGB colors.
     /// One of possible separate alpha channel blend settings is to avoid blending with WebGl background.
     /// On webgl canvas's resulting alpha channel will be used to blend the whole canvas background.
@@ -39,8 +39,8 @@ struct PipelineParams {
     ///};
     ///```
     /// The same results may be achieved with ColorMask(true, true, true, false)
-    alpha_blend: Option<[BlendState]>,
-    stencil_test: Option<[StencilState]>,
+    alpha_blend: Option<?BlendState?>,
+    stencil_test: Option<?StencilState?>,
     color_write: bool[4usize],
     primitive_type: PrimitiveType,
 }

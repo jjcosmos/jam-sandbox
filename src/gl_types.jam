@@ -83,9 +83,9 @@ struct TextureParams {
 }
 
 struct ClearAction {
-    color: Option<[f32[4usize]]>,
-    depth: Option<[f32]>,
-    stencil: Option<[i32]>,
+    color: Option<?f32[4usize]?>,
+    depth: Option<?f32?>,
+    stencil: Option<?i32?>,
 }
 
 sum PassAction {

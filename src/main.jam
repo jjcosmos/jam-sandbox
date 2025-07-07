@@ -1,30 +1,3 @@
-sum Item<[T]> {
-    No(Thing<[T]>),
-    Yes(i8),
-    None,
-}
-
-struct Thing<[T]> {
-    item: T,
-}
-
-impl <[T]> Thing<[T]> {
-    proc do_thing(self: Thing<[T]>*) -> T {
-        return self.item;
-    }
-}
-
-enum Bork {
-    A: 1i32,
-    B: 3i32,
-    C: 0i32,
-    D, // implicitly also 1
-}
-
-sum Simple {
-    Yes(i32),
-}
-
 extern proc byteview(start: i32, len: i32);
 extern proc println(msg: cstr);
 
@@ -58,19 +31,14 @@ struct HasFuncArg {
     fn: proc(a: i32, b: i32),
 }
 
-sum Option<[T]> {
-    None,
-    Some(T),
-}
-
 static default_pass_action: PassAction;
 proc window_main() {
     // This works now!
-    let x = Option<[i32]>:>Some(69i32);
+    let x = Option<?i32?>:>Some(69i32);
     x = _:>None;
 
     let pass_action_clear = ClearAction {
-        // The type of color is known to be Option<[f32[4usize]]>, so it can be inferred
+        // The type of color is known to be Option<?f32[4usize]?>, so it can be inferred
         color: _:>Some([1.0f32, 1.0f32, 1.0f32, 1.0f32]),
         depth: _:>None,
         stencil: _:>None,
@@ -84,6 +52,15 @@ proc window_main() {
 
     println("started texture load");
     print_i32(bayle_file_handle);
+
+    // TODO: Comptime expressions
+    // size_of!(Type)
+    // align_of(Type)
+    // include_bytes!("path.bin")
+    // include_str!("path.bin")
+    // wat!("", Type)
+    // even someting like
+    // json_layout!(Type)
 }
 
 static bayle_file_handle: i32;
@@ -109,22 +86,22 @@ proc create_render_resources() {
             Vertex { pos : Float2 { x: -0.5f32, y:  0.5f32 }, uv: Float2 { x: 0f32, y: 0f32 } }
     ];
 
-    let vertex_size = cast<[i32]>(sizeof<[Vertex]>());
+    let vertex_size = cast<?i32?>(sizeof<?Vertex?>());
 
     let vertex_buffer = new_buffer(
         BufferType::VertexBuffer, 
         BufferUsage::Immutable, 
-        cast<[i32]>(&vertices), 
+        cast<?i32?>(&vertices), 
         vertex_size * 4i32,
         vertex_size
     );
 
     let indices: u16[6usize] = [0u16, 1u16, 2u16, 0u16, 2u16, 3u16];
-    let u16_size = cast<[i32]>(sizeof<[u16]>());
+    let u16_size = cast<?i32?>(sizeof<?u16?>());
     let index_buffer = new_buffer(
         BufferType::IndexBuffer, 
         BufferUsage::Immutable, 
-        cast<[i32]>(&indices), 
+        cast<?i32?>(&indices), 
         u16_size * 6i32,
         u16_size
     );
@@ -164,7 +141,7 @@ proc window_draw(delta_draw: f64, now: f64) {
         };
     };
 
-    let fdelta_draw: f32 = cast<[f32]>(delta_draw);
+    let fdelta_draw: f32 = cast<?f32?>(delta_draw);
     // struct (or sum) type ident expression are normally r values
     // ref keyword prevents value semantics and passes by pointer
     // kinda lazy, should probably just allow &default_pass_action -
@@ -192,16 +169,15 @@ proc window_draw(delta_draw: f64, now: f64) {
     // This should take the binding id created from jam
     // Bindings have vertex buffers, an index buffer, and textures
     apply_bindings(0i32);
-    //dodraw();
 
     for (let x = 0i32; x < 10i32; x += 1i32;) {
-        let t = now + cast<[f64]>(x) * 0.3f64;
+        let t = now + cast<?f64?>(x) * 0.3f64;
         let uniform = Float2 {
-            x: cast<[f32]>(sin_f64(t) * 0.5f64),
-            y: cast<[f32]>(cos_f64(t * 3.0f64) * 0.5f64),
+            x: cast<?f32?>(sin_f64(t) * 0.5f64),
+            y: cast<?f32?>(cos_f64(t * 3.0f64) * 0.5f64),
         };
 
-        apply_uniforms_from_bytes(cast<[void*]>(&uniform), sizeof<[Float2]>());
+        apply_uniforms_from_bytes(cast<?void*?>(&uniform), sizeof<?Float2?>());
         draw(0i32, 6i32, 1i32);
     }
 
@@ -254,10 +230,10 @@ proc create_pipeline() -> u32 {
     };
 
     let shader_id = create_shader();
-    // No heap allocations yet lol
+    // No heap allocations yet lol. Copied by RT so doesn't need to point to permanent memory
     let attibutes_ptr = &[&vertex_attribute_pos, &vertex_attribute_uv];
     let layout_ptr = &buffer_layout;
-    new_pipeline(&layout_ptr, 1i32, cast<[VertexAttribute**]>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
+    new_pipeline(&layout_ptr, 1i32, cast<?VertexAttribute**?>(attibutes_ptr), 2i32, shader_id, &pipeline_params)
 }
 
 extern proc new_shader(vert: cstr, frag: cstr, shader_meta_ptr: ShaderMeta*) -> u32;
