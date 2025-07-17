@@ -14,7 +14,7 @@ extern proc apply_bindings(binding_id: i32);
 extern proc apply_uniforms_from_bytes(ptr: void*, byte_count: u32);
 extern proc draw(base_element: i32, num_elements: i32, num_instances: i32);
 
-// I simply don't have the math skills for talor series approximation rn
+// I simply don't have the math skills for taylor series approximation rn
 // so either this or interpolated lookup
 extern proc sin_f32(value: f32) -> f32;
 extern proc sin_f64(value: f64) -> f64;
